@@ -2,6 +2,8 @@
 
 from token import TokenType as TT
 from expr import *
+from stmt import *
+from error_handler import LoxParseException
 
 class Parser:
     def __init__(self, error_handler, tokens):
@@ -11,13 +13,65 @@ class Parser:
         self.current = 0
 
     def parse(self):
-        try:
-            return self.expression()
-        except LoxParseError:
-            return None
+        statements = []
+        while not self.isAtEnd():
+            statements.append(self.declaration())
+        return statements
 
     def expression(self):
-        return self.equality()
+        return self.assignment()
+
+    def declaration(self):
+        try:
+            if self.match(TT.VAR):
+                return self.varDeclaration()
+            return self.statement()
+        except LoxParseException:
+            self.synchronize()
+            return None
+
+    def statement(self):
+        if self.match(TT.PRINT):
+            return self.printStatement()
+        if self.match(TT.LEFT_BRACE):
+            return BlockStmt(self.block())
+        return self.expressionStatement()
+
+    def printStatement(self):
+        value = self.expression()
+        self.consume(TT.SEMICOLON, "Expect ';' after value.")
+        return PrintStmt(value)
+
+    def varDeclaration(self):
+        name = self.consume(TT.IDENTIFIER, "Expect variable name.")
+        initializer = None
+        if self.match(TT.EQUAL):
+            initializer = self.expression()
+        self.consume(TT.SEMICOLON, "Expect ';' after variable declaration.")
+        return VariableStmt(name, initializer)
+
+    def expressionStatement(self):
+        expr = self.expression()
+        self.consume(TT.SEMICOLON, "Expect ';' after value.")
+        return ExpressionStmt(expr)
+
+    def block(self):
+        statements = []
+        while not self.check(TT.RIGHT_BRACE) and not self.isAtEnd():
+            statements.append(self.declaration())
+        self.consume(TT.RIGHT_BRACE, "Expect '}' after block.")
+        return statements
+
+    def assignment(self):
+        expr = self.equality()
+        if self.match(TT.EQUAL):
+            equals = self.previous()
+            value = self.assignment()
+            if isinstance(expr, VariableExpr):
+                name = expr.name
+                return AssignExpr(name, value)
+            self.error(equals, "Invalid assignment target.")
+        return expr
 
     def equality(self):
         expr = self.comparison()
@@ -68,6 +122,9 @@ class Parser:
 
         if self.match(TT.NUMBER, TT.STRING):
             return LiteralExpr(self.previous().literal)
+
+        if self.match(TT.IDENTIFIER):
+            return VariableExpr(self.previous())
 
         if self.match(TT.LEFT_PAREN):
             expr = self.expression()

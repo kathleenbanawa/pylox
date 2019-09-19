@@ -27,12 +27,12 @@ class Lox:
         scanner = Scanner(self.error_handler, source)
         tokens = scanner.scanTokens()
         parser = Parser(self.error_handler, tokens)
-        expression = parser.parse()
+        statements = parser.parse()
 
         if self.error_handler.had_error:
             return
 
-        self.interpreter.interpret(expression)
+        self.interpreter.interpret(statements)
 
 if __name__ == "__main__":
     lox = Lox()

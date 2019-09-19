@@ -3,14 +3,21 @@
 from token import TokenType as TT
 from visitor import Visitor
 from expr import *
+from stmt import *
+from environment import Environment
 from error_handler import LoxRuntimeException
 
 class Interpreter(Visitor):
     def __init__(self, error_handler):
         self.error_handler = error_handler
+        self.environment = Environment()
 
     def visit(self, x):
-        if isinstance(x, BinaryExpr):
+        if isinstance(x, AssignExpr):
+            value = self.evaluate(x.value)
+            self.environment.assign(x.name, value)
+            return value
+        elif isinstance(x, BinaryExpr):
             left = self.evaluate(x.left)
             right = self.evaluate(x.right)
 
@@ -59,15 +66,33 @@ class Interpreter(Visitor):
 
             # Unreachable.
             return None
+        elif isinstance(x, VariableExpr):
+            return self.environment.get(x.name)
         elif isinstance(x, LiteralExpr):
             return x.value
         elif isinstance(x, GroupingExpr):
             return self.evaluate(x.expression)
-
-    def interpret(self, expression):
-        try:
-            value = self.evaluate(expression)
+        elif isinstance(x, ExpressionStmt):
+            self.evaluate(x.expression)
+            return None
+        elif isinstance(x, BlockStmt):
+            self.executeBlock(x.statements, Environment(self.environment))
+            return None
+        elif isinstance(x, PrintStmt):
+            value = self.evaluate(x.expression)
             print(self.stringify(value))
+            return None
+        elif isinstance(x, VariableStmt):
+            value = None
+            if x.initializer:
+                value = self.evaluate(x.initializer)
+            self.environment.define(x.name.lexeme, value)
+            return None
+
+    def interpret(self, statements):
+        try:
+            for statement in statements:
+                self.execute(statement)
         except LoxRuntimeException as e:
             self.error_handler.runtimeError(e)
 
@@ -104,3 +129,15 @@ class Interpreter(Visitor):
 
     def evaluate(self, expr):
         return expr.accept(self)
+
+    def execute(self, stmt):
+        return stmt.accept(self)
+
+    def executeBlock(self, statements, environment):
+        previous = self.environment
+        try:
+            self.environment = environment
+            for statement in statements:
+                self.execute(statement)
+        finally:
+            self.environment = previous
