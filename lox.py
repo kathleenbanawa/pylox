@@ -3,10 +3,14 @@
 import sys
 from error_handler import ErrorHandler
 from scanner import Scanner
+from parser import Parser
+from ast_printer import AstPrinter
+from interpreter import Interpreter
 
 class Lox:
     def __init__(self):
         self.error_handler = ErrorHandler()
+        self.interpreter = Interpreter(self.error_handler)
 
     def run_file(self, path):
         with open(path, "r") as f:
@@ -22,9 +26,13 @@ class Lox:
     def run(self, source):
         scanner = Scanner(self.error_handler, source)
         tokens = scanner.scanTokens()
+        parser = Parser(self.error_handler, tokens)
+        expression = parser.parse()
 
-        for token in tokens:
-            print(token)
+        if self.error_handler.had_error:
+            return
+
+        self.interpreter.interpret(expression)
 
 if __name__ == "__main__":
     lox = Lox()
