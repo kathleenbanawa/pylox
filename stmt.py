@@ -18,9 +18,20 @@ class IfStmt(Stmt):
         self.thenBranch = thenBranch
         self.elseBranch = elseBranch
 
+class FunctionStmt(Stmt):
+    def __init__(self, name, params, body):
+        self.name = name
+        self.params = params
+        self.body = body
+
 class PrintStmt(Stmt):
     def __init__(self, expression):
         self.expression = expression
+
+class ReturnStmt(Stmt):
+    def __init__(self, keyword, value):
+        self.keyword = keyword
+        self.value = value
 
 class VariableStmt(Stmt):
     def __init__(self, name, initializer):

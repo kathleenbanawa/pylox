@@ -19,6 +19,14 @@ class BinaryExpr(Expr):
     def __str__(self):
         return f"{self.left} {self.operator} {self.right}"
 
+class CallExpr(Expr):
+    def __init__(self, callee, paren, arguments):
+        self.callee = callee
+        self.paren = paren
+        self.arguments = arguments
+    def __str__(self):
+        return f"{self.callee} {self.paren} {self.arguments}"
+
 class UnaryExpr(Expr):
     def __init__(self, operator, right):
         self.operator = operator

@@ -5,12 +5,16 @@ from visitor import Visitor
 from expr import *
 from stmt import *
 from environment import Environment
+from lox_function import LoxFunction
+from lox_callable import LoxCallable
+from lox_return import LoxReturn
 from error_handler import LoxRuntimeException
 
 class Interpreter(Visitor):
     def __init__(self, error_handler):
         self.error_handler = error_handler
-        self.environment = Environment()
+        self.globals = Environment()
+        self.environment = self.globals
 
     def visit(self, x):
         if isinstance(x, AssignExpr):
@@ -54,6 +58,17 @@ class Interpreter(Visitor):
 
             # Unreachable.
             return None
+        elif isinstance(x, CallExpr):
+            callee = self.evaluate(x.callee)
+            arguments = []
+            for argument in x.arguments:
+                arguments.append(self.evaluate(argument))
+            if not isinstance(callee, LoxCallable):
+                raise(LoxRuntimeException(x.paren, "Can only call functions and classes."))
+            function = callee
+            if len(arguments) != function.arity():
+                raise(LoxRuntimeException(x.paren, f"Expected {function.arity()} arguments but got {len(arguments)}."))
+            return function.call(self, arguments)
         elif isinstance(x, UnaryExpr):
             right = self.evaluate(x.right)
 
@@ -87,6 +102,10 @@ class Interpreter(Visitor):
         elif isinstance(x, BlockStmt):
             self.executeBlock(x.statements, Environment(self.environment))
             return None
+        elif isinstance(x, FunctionStmt):
+            function = LoxFunction(x, self.environment)
+            self.environment.define(x.name.lexeme, function)
+            return None
         elif isinstance(x, IfStmt):
             if self.isTruthy(self.evaluate(x.condition)):
                 self.execute(x.thenBranch)
@@ -97,6 +116,11 @@ class Interpreter(Visitor):
             value = self.evaluate(x.expression)
             print(self.stringify(value))
             return None
+        elif isinstance(x, ReturnStmt):
+            value = None
+            if x.value:
+                value = self.evaluate(x.value)
+            raise(LoxReturn(value))
         elif isinstance(x, VariableStmt):
             value = None
             if x.initializer:
