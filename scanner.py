@@ -1,6 +1,7 @@
 #!/usr/local/bin/python3
 
-from token import Token, TokenType as TT
+from token import Token
+from lox_types import TokenType as TT
 
 class Scanner:
     def __init__(self, error_handler, source):

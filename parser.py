@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-from token import TokenType as TT
+from lox_types import TokenType as TT
 from expr import *
 from stmt import *
 from error_handler import LoxParseException
