@@ -70,6 +70,15 @@ class Interpreter(Visitor):
             return self.environment.get(x.name)
         elif isinstance(x, LiteralExpr):
             return x.value
+        elif isinstance(x, LogicalExpr):
+            left = self.evaluate(x.left)
+            if x.operator.type == TT.OR:
+                if self.isTruthy(left):
+                    return left
+            else:
+                if not self.isTruthy(left):
+                    return left
+            return self.evaluate(x.right)
         elif isinstance(x, GroupingExpr):
             return self.evaluate(x.expression)
         elif isinstance(x, ExpressionStmt):
@@ -77,6 +86,12 @@ class Interpreter(Visitor):
             return None
         elif isinstance(x, BlockStmt):
             self.executeBlock(x.statements, Environment(self.environment))
+            return None
+        elif isinstance(x, IfStmt):
+            if self.isTruthy(self.evaluate(x.condition)):
+                self.execute(x.thenBranch)
+            elif x.elseBranch:
+                self.execute(x.elseBranch)
             return None
         elif isinstance(x, PrintStmt):
             value = self.evaluate(x.expression)
@@ -87,6 +102,10 @@ class Interpreter(Visitor):
             if x.initializer:
                 value = self.evaluate(x.initializer)
             self.environment.define(x.name.lexeme, value)
+            return None
+        elif isinstance(x, WhileStmt):
+            while self.isTruthy(self.evaluate(x.condition)):
+                self.execute(x.body)
             return None
 
     def interpret(self, statements):

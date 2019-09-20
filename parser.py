@@ -31,11 +31,25 @@ class Parser:
             return None
 
     def statement(self):
+        if self.match(TT.IF):
+            return self.ifStatement()
         if self.match(TT.PRINT):
             return self.printStatement()
+        if self.match(TT.WHILE):
+            return self.whileStatement()
         if self.match(TT.LEFT_BRACE):
             return BlockStmt(self.block())
         return self.expressionStatement()
+
+    def ifStatement(self):
+        self.consume(TT.LEFT_PAREN, "Expect '(' after 'if'.")
+        condition = self.expression()
+        self.consume(TT.RIGHT_PAREN, "Expect ')' after if condition.")
+        thenBranch = self.statement()
+        elseBranch = None
+        if self.match(TT.ELSE):
+            elseBranch = self.statement()
+        return IfStmt(condition, thenBranch, elseBranch)
 
     def printStatement(self):
         value = self.expression()
@@ -50,6 +64,13 @@ class Parser:
         self.consume(TT.SEMICOLON, "Expect ';' after variable declaration.")
         return VariableStmt(name, initializer)
 
+    def whileStatement(self):
+        self.consume(TT.LEFT_PAREN, "Expect '(' after 'while'.")
+        condition = self.expression()
+        self.consume(TT.RIGHT_PAREN, "Expect ')' after condition.")
+        body = self.statement()
+        return WhileStmt(condition, body)
+
     def expressionStatement(self):
         expr = self.expression()
         self.consume(TT.SEMICOLON, "Expect ';' after value.")
@@ -63,7 +84,7 @@ class Parser:
         return statements
 
     def assignment(self):
-        expr = self.equality()
+        expr = self.logical_or()
         if self.match(TT.EQUAL):
             equals = self.previous()
             value = self.assignment()
@@ -71,6 +92,22 @@ class Parser:
                 name = expr.name
                 return AssignExpr(name, value)
             self.error(equals, "Invalid assignment target.")
+        return expr
+
+    def logical_or(self):
+        expr = self.logical_and()
+        while self.match(TT.OR):
+            operator = self.previous()
+            right = self.logical_and()
+            expr = LogicalExpr(expr, operator, right)
+        return expr
+
+    def logical_and(self):
+        expr = self.equality()
+        while self.match(TT.AND):
+            operator = self.previous()
+            right = self.equality()
+            expr = LogicalExpr(expr, operator, right)
         return expr
 
     def equality(self):
@@ -174,4 +211,4 @@ class Parser:
             tt = self.peek().token_type
             if tt in [TT.CLASS, TT.FUN, TT.VAR, TT.FOR, TT.IF, TT.WHILE, TT.PRINT, TT.RETURN]:
                 return
-        self.advance()
+            self.advance()

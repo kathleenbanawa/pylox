@@ -32,6 +32,14 @@ class LiteralExpr(Expr):
     def __str__(self):
         return f"{self.value}"
 
+class LogicalExpr(Expr):
+    def __init__(self, left, operator, right):
+        self.left = left
+        self.operator = operator
+        self.right = right
+    def __str__(self):
+        return f"{self.left} {self.operator} {self.right}"
+
 class GroupingExpr(Expr):
     def __init__(self, expression):
         self.expression = expression

@@ -12,6 +12,12 @@ class ExpressionStmt(Stmt):
     def __init__(self, expression):
         self.expression = expression
 
+class IfStmt(Stmt):
+    def __init__(self, condition, thenBranch, elseBranch):
+        self.condition = condition
+        self.thenBranch = thenBranch
+        self.elseBranch = elseBranch
+
 class PrintStmt(Stmt):
     def __init__(self, expression):
         self.expression = expression
@@ -20,3 +26,8 @@ class VariableStmt(Stmt):
     def __init__(self, name, initializer):
         self.name = name
         self.initializer = initializer
+
+class WhileStmt(Stmt):
+    def __init__(self, condition, body):
+        self.condition = condition
+        self.body = body
