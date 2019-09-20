@@ -15,11 +15,19 @@ class Interpreter(Visitor):
         self.error_handler = error_handler
         self.globals = Environment()
         self.environment = self.globals
+        self.locals = {}
 
     def visit(self, x):
         if isinstance(x, AssignExpr):
             value = self.evaluate(x.value)
-            self.environment.assign(x.name, value)
+
+            if x in self.locals:
+                distance = self.locals[x]
+                if distance is not None:
+                    self.environment.assignAt(distance, x.name, value)
+            else:
+                self.globals.assign(x.name, value)
+
             return value
         elif isinstance(x, BinaryExpr):
             left = self.evaluate(x.left)
@@ -82,7 +90,7 @@ class Interpreter(Visitor):
             # Unreachable.
             return None
         elif isinstance(x, VariableExpr):
-            return self.environment.get(x.name)
+            return self.lookUpVariable(x.name, x)
         elif isinstance(x, LiteralExpr):
             return x.value
         elif isinstance(x, LogicalExpr):
@@ -132,6 +140,14 @@ class Interpreter(Visitor):
                 self.execute(x.body)
             return None
 
+    def lookUpVariable(self, name, expr):
+        if expr in self.locals:
+            distance = self.locals[expr]
+            if distance is not None:
+                return self.environment.getAt(distance, name.lexeme)
+        else:
+            return self.globals.get(name)
+
     def interpret(self, statements):
         try:
             for statement in statements:
@@ -175,6 +191,9 @@ class Interpreter(Visitor):
 
     def execute(self, stmt):
         return stmt.accept(self)
+
+    def resolve(self, expr, depth):
+        self.locals[expr] = depth
 
     def executeBlock(self, statements, environment):
         previous = self.environment

@@ -6,6 +6,7 @@ from scanner import Scanner
 from parser import Parser
 from ast_printer import AstPrinter
 from interpreter import Interpreter
+from resolver import Resolver
 
 class Lox:
     def __init__(self):
@@ -20,8 +21,14 @@ class Lox:
 
     def run_prompt(self):
         while True:
-            self.run(input("> "))
-            self.error_handler.had_error = False
+            try:
+                self.run(input("> "))
+                self.error_handler.had_error = False
+            except KeyboardInterrupt:
+                print("\nKeyboardInterrupt")
+            except EOFError:
+                print()
+                exit(0)
 
     def run(self, source):
         scanner = Scanner(self.error_handler, source)
@@ -29,6 +36,13 @@ class Lox:
         parser = Parser(self.error_handler, tokens)
         statements = parser.parse()
 
+        if self.error_handler.had_error:
+            return
+
+        resolver = Resolver(self.error_handler, self.interpreter)
+        resolver.resolve(statements)
+
+        # Stop if there was a resolution error.
         if self.error_handler.had_error:
             return
 
