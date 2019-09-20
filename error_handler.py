@@ -1,12 +1,20 @@
 #!/usr/local/bin/python3
 
+from token import Token, TokenType as TT
+
 class ErrorHandler:
     def __init__(self):
         self.had_error = False
         self.had_runtime_error = False
 
-    def error(self, line, message):
-        self.report(line, "", message)
+    def error(self, x, message):
+        if isinstance(x, Token):
+            if x.token_type == TT.EOF:
+                self.report(x.line, " at end", message)
+            else:
+                self.report(x.line, f" at '{x.lexeme}'", message)
+        else:
+            self.report(line, "", message)
 
     def runtimeError(self, error):
         print(error)

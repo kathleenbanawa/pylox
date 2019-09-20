@@ -31,6 +31,8 @@ class Parser:
             return None
 
     def statement(self):
+        if self.match(TT.FOR):
+            return self.forStatement()
         if self.match(TT.IF):
             return self.ifStatement()
         if self.match(TT.PRINT):
@@ -40,6 +42,41 @@ class Parser:
         if self.match(TT.LEFT_BRACE):
             return BlockStmt(self.block())
         return self.expressionStatement()
+
+    def forStatement(self):
+        self.consume(TT.LEFT_PAREN, "Expect '(' after 'for'.")
+
+        initializer = None
+        if self.match(TT.SEMICOLON):
+            pass
+        elif self.match(TT.VAR):
+            initializer = self.varDeclaration()
+        else:
+            initializer = self.expressionStatement()
+
+        condition = None
+        if not self.check(TT.SEMICOLON):
+            condition = self.expression()
+        self.consume(TT.SEMICOLON, "Expect ';' after loop condition.")
+
+        increment = None
+        if not self.check(TT.RIGHT_PAREN):
+            increment = self.expression()
+        self.consume(TT.RIGHT_PAREN, "Expect ')' after for clauses.")
+
+        body = self.statement()
+
+        if increment:
+            body = BlockStmt([body, ExpressionStmt(increment)])
+
+        if condition is None:
+            condition = LiteralExpr(True)
+        body = WhileStmt(condition, body)
+
+        if initializer:
+            body = BlockStmt([initializer, body])
+
+        return body
 
     def ifStatement(self):
         self.consume(TT.LEFT_PAREN, "Expect '(' after 'if'.")
