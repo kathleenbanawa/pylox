@@ -27,12 +27,16 @@ class CallExpr(Expr):
     def __str__(self):
         return f"{self.callee} {self.paren} {self.arguments}"
 
-class UnaryExpr(Expr):
-    def __init__(self, operator, right):
-        self.operator = operator
-        self.right = right
+class GetExpr(Expr):
+    def __init__(self, obj, name):
+        self.obj = obj
+        self.name = name
+
+class GroupingExpr(Expr):
+    def __init__(self, expression):
+        self.expression = expression
     def __str__(self):
-        return f"{self.operator} {self.right}"
+        return f"{self.expression}"
 
 class LiteralExpr(Expr):
     def __init__(self, value):
@@ -48,11 +52,22 @@ class LogicalExpr(Expr):
     def __str__(self):
         return f"{self.left} {self.operator} {self.right}"
 
-class GroupingExpr(Expr):
-    def __init__(self, expression):
-        self.expression = expression
+class SetExpr(Expr):
+    def __init__(self, obj, name, value):
+        self.obj = obj
+        self.name = name
+        self.value = value
+
+class ThisExpr(Expr):
+    def __init__(self, keyword):
+        self.keyword = keyword
+
+class UnaryExpr(Expr):
+    def __init__(self, operator, right):
+        self.operator = operator
+        self.right = right
     def __str__(self):
-        return f"{self.expression}"
+        return f"{self.operator} {self.right}"
 
 class VariableExpr(Expr):
     def __init__(self, name):

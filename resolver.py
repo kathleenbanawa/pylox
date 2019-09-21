@@ -3,7 +3,7 @@
 from visitor import Visitor
 from stmt import *
 from expr import *
-from lox_types import FunctionType as FT
+from lox_types import FunctionType as FT, ClassType as CT
 
 class Resolver(Visitor):
     def __init__(self, error_handler, interpreter):
@@ -11,6 +11,7 @@ class Resolver(Visitor):
         self.interpreter = interpreter
         self.scopes = []
         self.currentFunction = FT.NONE
+        self.currentClass = CT.NONE
 
     def resolve(self, x):
         if isinstance(x, list):
@@ -63,6 +64,24 @@ class Resolver(Visitor):
             self.beginScope()
             self.resolve(x.statements)
             self.endScope()
+        elif isinstance(x, ClassStmt):
+            enclosingClass = self.currentClass
+            self.currentClass = CT.CLASS
+
+            self.declare(x.name)
+            self.define(x.name)
+
+            self.beginScope()
+            self.scopes[-1]["this"] = True
+
+            for method in x.methods:
+                declaration = FT.METHOD
+                if method.name.lexeme == "init":
+                    declaration = FT.INITIALIZER
+                self.resolveFunction(method, declaration)
+
+            self.endScope()
+            self.currenttClass = enclosingClass
         elif isinstance(x, ExpressionStmt):
             self.resolve(x.expression)
         elif isinstance(x, FunctionStmt):
@@ -80,6 +99,8 @@ class Resolver(Visitor):
             if self.currentFunction == FT.NONE:
                 self.error_handler.error(x.keyword, "Cannot return from top-level code.")
             if x.value:
+                if self.currentFunction == FT.INITIALIZER:
+                    self.error_handler.error(x.keyword, "Cannot return a value from an initializer.")
                 self.resolve(x.value)
         elif isinstance(x, VariableStmt):
             self.declare(x.name)
@@ -99,6 +120,8 @@ class Resolver(Visitor):
             self.resolve(x.callee)
             for argument in x.arguments:
                 self.resolve(argument)
+        elif isinstance(x, GetExpr):
+            self.resolve(x.obj)
         elif isinstance(x, GroupingExpr):
             self.resolve(x.expression)
         elif isinstance(x, LiteralExpr):
@@ -106,6 +129,14 @@ class Resolver(Visitor):
         elif isinstance(x, LogicalExpr):
             self.resolve(x.left)
             self.resolve(x.right)
+        elif isinstance(x, SetExpr):
+            self.resolve(x.value)
+            self.resolve(x.obj)
+        elif isinstance(x, ThisExpr):
+            if self.currentClass == CT.NONE:
+                self.error_handler.error(x.keyword, "Cannot use 'this' outside of a class.")
+                return None
+            self.resolveLocal(x, x.keyword)
         elif isinstance(x, UnaryExpr):
             self.resolve(right)
         elif isinstance(x, VariableExpr):

@@ -23,6 +23,8 @@ class Parser:
 
     def declaration(self):
         try:
+            if self.match(TT.CLASS):
+                return self.classDeclaration()
             if self.match(TT.FUN):
                 return self.function("function")
             if self.match(TT.VAR):
@@ -31,6 +33,18 @@ class Parser:
         except LoxParseException:
             self.synchronize()
             return None
+
+    def classDeclaration(self):
+        name = self.consume(TT.IDENTIFIER, "Expect class name.")
+        self.consume(TT.LEFT_BRACE, "Expect '{' before class body.")
+
+        methods = []
+        while not self.check(TT.RIGHT_BRACE) and not self.isAtEnd():
+            methods.append(self.function("method"))
+
+        self.consume(TT.RIGHT_BRACE, "Expect '}' aftetr class body.")
+
+        return ClassStmt(name, methods)
 
     def statement(self):
         if self.match(TT.FOR):
@@ -156,6 +170,9 @@ class Parser:
             if isinstance(expr, VariableExpr):
                 name = expr.name
                 return AssignExpr(name, value)
+            elif isinstance(expr, GetExpr):
+                get = expr
+                return SetExpr(get.obj, get.name, value)
             self.error(equals, "Invalid assignment target.")
         return expr
 
@@ -231,6 +248,9 @@ class Parser:
         while True:
             if self.match(TT.LEFT_PAREN):
                 expr = self.finishCall(expr)
+            elif self.match(TT.DOT):
+                name = self.consume(TT.IDENTIFIER, "Expect property name after '.'.")
+                expr = GetExpr(expr, name)
             else:
                 break
         return expr
@@ -245,6 +265,9 @@ class Parser:
 
         if self.match(TT.NUMBER, TT.STRING):
             return LiteralExpr(self.previous().literal)
+
+        if self.match(TT.THIS):
+            return ThisExpr(self.previous())
 
         if self.match(TT.IDENTIFIER):
             return VariableExpr(self.previous())

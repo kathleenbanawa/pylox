@@ -8,6 +8,11 @@ class BlockStmt(Stmt):
     def __init__(self, statements):
         self.statements = statements
 
+class ClassStmt(Stmt):
+    def __init__(self, name, methods):
+        self.name = name
+        self.methods = methods
+
 class ExpressionStmt(Stmt):
     def __init__(self, expression):
         self.expression = expression

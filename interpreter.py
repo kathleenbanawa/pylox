@@ -8,6 +8,8 @@ from environment import Environment
 from lox_function import LoxFunction
 from lox_callable import LoxCallable
 from lox_return import LoxReturn
+from lox_class import LoxClass
+from lox_instance import LoxInstance
 from error_handler import LoxRuntimeException
 
 class Interpreter(Visitor):
@@ -77,6 +79,11 @@ class Interpreter(Visitor):
             if len(arguments) != function.arity():
                 raise(LoxRuntimeException(x.paren, f"Expected {function.arity()} arguments but got {len(arguments)}."))
             return function.call(self, arguments)
+        elif isinstance(x, GetExpr):
+            obj = self.evaluate(x.obj)
+            if isinstance(obj, LoxInstance):
+                return obj.get(x.name)
+            raise(LoxRuntimeException(x.name, "Only instances have properties."))
         elif isinstance(x, UnaryExpr):
             right = self.evaluate(x.right)
 
@@ -102,6 +109,15 @@ class Interpreter(Visitor):
                 if not self.isTruthy(left):
                     return left
             return self.evaluate(x.right)
+        elif isinstance(x, SetExpr):
+            obj = self.evaluate(x.obj)
+            if not isinstance(obj, LoxInstance):
+                raise(LoxRuntimeException(x.name, "Only instances have fields."))
+            value = self.evaluate(x.value)
+            obj.set(x.name, value)
+            return value
+        elif isinstance(x, ThisExpr):
+            return self.lookUpVariable(x.keyword, x)
         elif isinstance(x, GroupingExpr):
             return self.evaluate(x.expression)
         elif isinstance(x, ExpressionStmt):
@@ -109,6 +125,17 @@ class Interpreter(Visitor):
             return None
         elif isinstance(x, BlockStmt):
             self.executeBlock(x.statements, Environment(self.environment))
+            return None
+        elif isinstance(x, ClassStmt):
+            self.environment.define(x.name.lexeme, None)
+
+            methods = {}
+            for method in x.methods:
+                function = LoxFunction(method, self.environment, method.name.lexeme == "init")
+                methods[method.name.lexeme] = function
+
+            klass = LoxClass(x.name.lexeme, methods)
+            self.environment.assign(x.name, klass)
             return None
         elif isinstance(x, FunctionStmt):
             function = LoxFunction(x, self.environment)
