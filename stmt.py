@@ -9,8 +9,9 @@ class BlockStmt(Stmt):
         self.statements = statements
 
 class ClassStmt(Stmt):
-    def __init__(self, name, methods):
+    def __init__(self, name, superclass, methods):
         self.name = name
+        self.superclass = superclass
         self.methods = methods
 
 class ExpressionStmt(Stmt):

@@ -16,4 +16,4 @@ FunctionType = Enum("FunctionType",
                     "NONE FUNCTION INITIALIZER METHOD")
 
 ClassType = Enum("ClassType",
-                 "NONE CLASS")
+                 "NONE CLASS SUBCLASS")

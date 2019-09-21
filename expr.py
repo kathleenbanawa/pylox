@@ -58,6 +58,11 @@ class SetExpr(Expr):
         self.name = name
         self.value = value
 
+class SuperExpr(Expr):
+    def __init__(self, keyword, method):
+        self.keyword = keyword
+        self.method = method
+
 class ThisExpr(Expr):
     def __init__(self, keyword):
         self.keyword = keyword

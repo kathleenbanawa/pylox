@@ -71,6 +71,18 @@ class Resolver(Visitor):
             self.declare(x.name)
             self.define(x.name)
 
+            if x.superclass:
+                if x.name.lexeme == x.superclass.name.lexeme:
+                    self.error_handler.error(x.superclass.name, "A class cannot inherit from itself.")
+
+            if x.superclass:
+                self.currentClass = CT.SUBCLASS
+                self.resolve(x.superclass)
+
+            if x.superclass:
+                self.beginScope()
+                self.scopes[-1]["super"] = True
+
             self.beginScope()
             self.scopes[-1]["this"] = True
 
@@ -81,6 +93,10 @@ class Resolver(Visitor):
                 self.resolveFunction(method, declaration)
 
             self.endScope()
+
+            if x.superclass:
+                self.endScope()
+
             self.currenttClass = enclosingClass
         elif isinstance(x, ExpressionStmt):
             self.resolve(x.expression)
@@ -132,6 +148,12 @@ class Resolver(Visitor):
         elif isinstance(x, SetExpr):
             self.resolve(x.value)
             self.resolve(x.obj)
+        elif isinstance(x, SuperExpr):
+            if self.currentClass == CT.NONE:
+                self.error_handler.error(x.keyword, "Cannot use 'super' outside of a class.")
+            elif self.currentClass != CT.SUBCLASS:
+                self.error_handler.error(x.keyword, "Cannot use 'super' in a class with no superclass.")
+            self.resolveLocal(x, x.keyword)
         elif isinstance(x, ThisExpr):
             if self.currentClass == CT.NONE:
                 self.error_handler.error(x.keyword, "Cannot use 'this' outside of a class.")

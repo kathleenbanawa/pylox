@@ -36,6 +36,12 @@ class Parser:
 
     def classDeclaration(self):
         name = self.consume(TT.IDENTIFIER, "Expect class name.")
+
+        superclass = None
+        if self.match(TT.LESS):
+            self.consume(TT.IDENTIFIER, "Expect superclass name.")
+            superclass = VariableExpr(self.previous())
+
         self.consume(TT.LEFT_BRACE, "Expect '{' before class body.")
 
         methods = []
@@ -44,7 +50,7 @@ class Parser:
 
         self.consume(TT.RIGHT_BRACE, "Expect '}' aftetr class body.")
 
-        return ClassStmt(name, methods)
+        return ClassStmt(name, superclass, methods)
 
     def statement(self):
         if self.match(TT.FOR):
@@ -265,6 +271,12 @@ class Parser:
 
         if self.match(TT.NUMBER, TT.STRING):
             return LiteralExpr(self.previous().literal)
+
+        if self.match(TT.SUPER):
+            keyword = self.previous()
+            self.consume(TT.DOT, "Expect '.' after 'super'.")
+            method = self.consume(TT.IDENTIFIER, "Expect superclass method name.")
+            return SuperExpr(keyword, method)
 
         if self.match(TT.THIS):
             return ThisExpr(self.previous())

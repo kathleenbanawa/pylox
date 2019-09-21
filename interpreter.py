@@ -116,6 +116,17 @@ class Interpreter(Visitor):
             value = self.evaluate(x.value)
             obj.set(x.name, value)
             return value
+        elif isinstance(x, SuperExpr):
+            distance = self.locals[x]
+            superclass = self.environment.getAt(distance, "super")
+
+            # "this" is always one level nearer than "super"'s environment.
+            obj = self.environment.getAt(distance-1, "this")
+
+            method = superclass.findMethod(x.method.lexeme)
+            if not method:
+                raise(LoxRuntimeException(x.method, f"Undefined property '{x.method.lexeme}'."))
+            return method.bind(obj)
         elif isinstance(x, ThisExpr):
             return self.lookUpVariable(x.keyword, x)
         elif isinstance(x, GroupingExpr):
@@ -127,14 +138,28 @@ class Interpreter(Visitor):
             self.executeBlock(x.statements, Environment(self.environment))
             return None
         elif isinstance(x, ClassStmt):
+            superclass = None
+            if x.superclass:
+                superclass = self.evaluate(x.superclass)
+                if not isinstance(superclass, LoxClass):
+                    raise(LoxRuntimeException(x.superclass.name, "Superclass must be a class."))
+
             self.environment.define(x.name.lexeme, None)
+
+            if x.superclass:
+                self.environment = Environment(self.environment)
+                self.environment.define("super", superclass)
 
             methods = {}
             for method in x.methods:
                 function = LoxFunction(method, self.environment, method.name.lexeme == "init")
                 methods[method.name.lexeme] = function
 
-            klass = LoxClass(x.name.lexeme, methods)
+            klass = LoxClass(x.name.lexeme, superclass, methods)
+
+            if superclass:
+                self.environment = self.environment.enclosing
+
             self.environment.assign(x.name, klass)
             return None
         elif isinstance(x, FunctionStmt):
